@@ -2,88 +2,81 @@ package connection
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
-	"time"
 )
 
 type ConnectionManager struct {
 	Connections Connections `json:"connections,omitempty"`
 	Sessions    Sessions    `json:"sessions,omitempty"`
-	savePath    string      `json:"-"`
 }
 
-func NewConnectionManager(savePath string) *ConnectionManager {
-	return &ConnectionManager{
-		savePath: savePath,
-	}
+func NewConnectionManager() ConnectionManager {
+	return ConnectionManager{}
 }
 
-func (cm *ConnectionManager) Load() error {
-	// load connections and sessions
-	if _, err := os.Stat(cm.savePath); !os.IsNotExist(err) {
-		data, err := os.ReadFile(cm.savePath)
-		if err != nil {
-			return err
-		}
-		if err := json.Unmarshal(data, &cm); err != nil {
-			return err
-		}
-	}
-	return nil
+func (cm *ConnectionManager) Load(data []byte) error {
+	return json.Unmarshal(data, &cm)
 }
 
-func (cm *ConnectionManager) Save() error {
+func (cm *ConnectionManager) Save(configPath string) error {
 	data, err := json.MarshalIndent(cm, "", "  ")
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(cm.savePath, data, 0644)
+	return os.WriteFile(configPath, data, 0644)
 }
 
-func (cm *ConnectionManager) Clear() error {
+func (cm *ConnectionManager) Clear(configPath string) error {
 	cm.Connections = make(Connections, 0)
 	cm.Sessions = make(Sessions, 0)
-	return cm.Save()
+	return cm.Save(configPath)
 }
 
-func (cm *ConnectionManager) AddConnection(conn Connection) error {
+func (cm *ConnectionManager) AddConnection(conn Connection, configPath string) error {
 	if err := cm.Connections.AddConnection(conn); err != nil {
 		return err
 	}
-	return cm.Save()
+	return cm.Save(configPath)
 }
 
-func (cm *ConnectionManager) RemoveConnection(name string) error {
+func (cm *ConnectionManager) RemoveConnection(name string, configPath string) error {
 	if err := cm.Connections.RemoveConnection(name); err != nil {
 		return err
 	}
 	if err := cm.Sessions.RemoveSessionsByConnectionName(name); err != nil {
 		return err
 	}
-	return cm.Save()
-}
-
-func (cm *ConnectionManager) GetConnection(name string) (*Connection, error) {
-	return cm.Connections.GetConnection(name)
-}
-
-func (cm *ConnectionManager) CleanupSessions() error {
-	cm.Sessions.CleanupSessions()
-	return cm.Save()
+	return cm.Save(configPath)
 }
 
 func (cm *ConnectionManager) GetSessionsByConnectionName(name string) Sessions {
 	return cm.Sessions.GetSessionsByConnectionName(name)
 }
 
-func (cm *ConnectionManager) AddSession(connectionName string, pid int) error {
-	newSession := Session{
-		ConnectionName: connectionName,
-		PID:            pid,
-		Started:        time.Now(),
-		Active:         true,
+func (cm *ConnectionManager) Connect(name string, configPath string) error {
+	// if any non-active sessions exist, resume the first one found
+	sessions := cm.Sessions.GetSessionsByConnectionName(name)
+	for _, session := range sessions {
+		if session.Active {
+			continue
+		}
+		// bring the existing process to foreground
+		session.Continue()
+		return cm.Save(configPath)
 	}
-	cm.Sessions.AddSession(newSession)
 
-	return cm.Save()
+	// if no non-active sessions found, start a new connection
+	conn, err := cm.Connections.GetConnection(name)
+	if err != nil {
+		return err
+	}
+	pid, err := conn.Connect()
+	if err != nil {
+		return fmt.Errorf("failed to connect to '%s': %v", name, err)
+	}
+
+	// add session to tracking
+	cm.Sessions.AddSession(NewSession(name, pid))
+	return cm.Save(configPath)
 }

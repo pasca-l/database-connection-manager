@@ -61,6 +61,15 @@ func (ss *Sessions) AnyActive() bool {
 	return slices.ContainsFunc(*ss, func(s Session) bool { return s.Active })
 }
 
+func NewSession(connectionName string, pid int) Session {
+	return Session{
+		ConnectionName: connectionName,
+		PID:            pid,
+		Started:        time.Now(),
+		Active:         true,
+	}
+}
+
 func (s Session) IsProcessAlive() bool {
 	if s.PID <= 0 {
 		return false

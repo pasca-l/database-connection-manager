@@ -33,13 +33,37 @@ func (c Connection) GetConnector() Connector {
 	}
 }
 
-func (cs *Connections) GetConnection(name string) (*Connection, error) {
+func (c Connection) TestConnection() bool {
+	connector := c.GetConnector()
+	if connector == nil {
+		return false
+	}
+	return connector.TestConnection()
+}
+
+func (c Connection) Connect() (int, error) {
+	connector := c.GetConnector()
+	if connector == nil {
+		return 0, fmt.Errorf("unsupported connection type: %s", c.Type)
+	}
+	cmd := connector.BuildCommand()
+	if cmd == nil {
+		return 0, fmt.Errorf("failed to build command for connection: %s", c.Name)
+	}
+	if err := cmd.Run(); err != nil {
+		return 0, fmt.Errorf("failed to connect to %s: %v", c.Name, err)
+	}
+
+	return cmd.Process.Pid, nil
+}
+
+func (cs *Connections) GetConnection(name string) (Connection, error) {
 	for _, conn := range *cs {
 		if conn.Name == name {
-			return &conn, nil
+			return conn, nil
 		}
 	}
-	return nil, fmt.Errorf("connection not found: %s", name)
+	return Connection{}, fmt.Errorf("connection not found: %s", name)
 }
 
 func (cs *Connections) AddConnection(conn Connection) error {

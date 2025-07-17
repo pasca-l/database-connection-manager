@@ -7,18 +7,21 @@ import (
 	"github.com/pasca-l/database-connection-manager/connection"
 )
 
-func ParseConnectionFlags(dbType string, args []string) (*connection.Connection, error) {
+func ParseConnectionFlags(args []string) (*connection.Connection, error) {
+	name := args[0]
+	dbType := args[1]
+
 	switch dbType {
 	case "psql":
-		return parsePostgreSQLFlags(args)
+		return parsePostgreSQLFlags(name, args[2:])
 	case "mysql":
-		return parseMySQLFlags(args)
+		return parseMySQLFlags(name, args[2:])
 	default:
 		return nil, fmt.Errorf("unsupported connection type: %s", dbType)
 	}
 }
 
-func parsePostgreSQLFlags(args []string) (*connection.Connection, error) {
+func parsePostgreSQLFlags(name string, flags []string) (*connection.Connection, error) {
 	psqlFlags := flag.NewFlagSet("add psql", flag.ExitOnError)
 	host := psqlFlags.String("host", "localhost", "Database host")
 	hostShort := psqlFlags.String("h", "localhost", "Database host (shorthand)")
@@ -27,11 +30,11 @@ func parsePostgreSQLFlags(args []string) (*connection.Connection, error) {
 	database := psqlFlags.String("database", "", "Database name")
 	databaseShort := psqlFlags.String("d", "", "Database name (shorthand)")
 	username := psqlFlags.String("username", "", "Username")
-	usernameShort := psqlFlags.String("u", "", "Username (shorthand)")
+	usernameShort := psqlFlags.String("U", "", "Username (shorthand)")
 	password := psqlFlags.String("password", "", "Password")
 	passwordShort := psqlFlags.String("w", "", "Password (shorthand)")
 
-	psqlFlags.Parse(args)
+	psqlFlags.Parse(flags)
 
 	// use shorthand values if main flags are empty
 	if *host == "localhost" && *hostShort != "localhost" {
@@ -54,10 +57,11 @@ func parsePostgreSQLFlags(args []string) (*connection.Connection, error) {
 		return nil, fmt.Errorf("database name is required. Use -d or -database flag")
 	}
 	if *username == "" {
-		return nil, fmt.Errorf("username is required. Use -u or -username flag")
+		return nil, fmt.Errorf("username is required. Use -U or -username flag")
 	}
 
 	return &connection.Connection{
+		Name:     name,
 		Type:     "psql",
 		Host:     *host,
 		Port:     *port,
@@ -67,20 +71,20 @@ func parsePostgreSQLFlags(args []string) (*connection.Connection, error) {
 	}, nil
 }
 
-func parseMySQLFlags(args []string) (*connection.Connection, error) {
+func parseMySQLFlags(name string, flags []string) (*connection.Connection, error) {
 	mysqlFlags := flag.NewFlagSet("add mysql", flag.ExitOnError)
 	host := mysqlFlags.String("host", "localhost", "Database host")
 	hostShort := mysqlFlags.String("h", "localhost", "Database host (shorthand)")
 	port := mysqlFlags.Int("port", 3306, "Database port")
 	portShort := mysqlFlags.Int("P", 3306, "Database port (shorthand)")
 	database := mysqlFlags.String("database", "", "Database name")
-	databaseShort := mysqlFlags.String("d", "", "Database name (shorthand)")
+	databaseShort := mysqlFlags.String("D", "", "Database name (shorthand)")
 	username := mysqlFlags.String("username", "", "Username")
 	usernameShort := mysqlFlags.String("u", "", "Username (shorthand)")
 	password := mysqlFlags.String("password", "", "Password")
 	passwordShort := mysqlFlags.String("p", "", "Password (shorthand)")
 
-	mysqlFlags.Parse(args)
+	mysqlFlags.Parse(flags)
 
 	// use shorthand values if main flags are empty
 	if *host == "localhost" && *hostShort != "localhost" {
@@ -100,13 +104,14 @@ func parseMySQLFlags(args []string) (*connection.Connection, error) {
 	}
 
 	if *database == "" {
-		return nil, fmt.Errorf("database name is required. Use -d or -database flag")
+		return nil, fmt.Errorf("database name is required. Use -D or -database flag")
 	}
 	if *username == "" {
 		return nil, fmt.Errorf("username is required. Use -u or -username flag")
 	}
 
 	return &connection.Connection{
+		Name:     name,
 		Type:     "mysql",
 		Host:     *host,
 		Port:     *port,

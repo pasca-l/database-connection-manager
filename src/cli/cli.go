@@ -21,11 +21,13 @@ type ConnectionManagementCli interface {
 
 type Cli struct {
 	ConnectionManager connection.ConnectionManager
+	Config            Config
 }
 
-func NewCli(cm connection.ConnectionManager) ConnectionManagementCli {
+func NewCli(cm connection.ConnectionManager, config Config) ConnectionManagementCli {
 	return &Cli{
 		ConnectionManager: cm,
+		Config:            config,
 	}
 }
 
@@ -36,8 +38,26 @@ func (c *Cli) HandleCommand() {
 	}
 
 	command := os.Args[1]
+	// check if config file exists, if not suggest running init
+	if command != "init" {
+		if _, err := os.Stat(c.Config.Path); os.IsNotExist(err) {
+			fmt.Printf("Configuration not found\nRun 'dbcm init' to initialize\n")
+			os.Exit(1)
+		}
+		state, err := c.Config.Load()
+		if err != nil {
+			fmt.Printf("Error loading configuration: %v\n", err)
+			os.Exit(1)
+		}
+		if err := c.ConnectionManager.Load(state); err != nil {
+			fmt.Printf("Error loading connection manager state: %v\n", err)
+			os.Exit(1)
+		}
+	}
 
 	switch command {
+	case "init":
+		c.handleInit()
 	case "ls":
 		c.handleList()
 	case "add":
@@ -59,6 +79,7 @@ func (c *Cli) HandleCommand() {
 func printUsage() {
 	fmt.Println("Database Connection Manager (dbcm)")
 	fmt.Println("Usage:")
+	fmt.Println("  dbcm init                         Initialize configuration file")
 	fmt.Println("  dbcm ls                           List all database connections and sessions")
 	fmt.Println("  dbcm add <name> <type> [flags]    Add a new database connection")
 	fmt.Println("  dbcm connect <name>               Connect to a database (creates/resumes session)")
@@ -80,19 +101,21 @@ func printUsage() {
 	fmt.Println("  -p, -password string   Password (optional)")
 }
 
-func (c *Cli) handleList() {
-	if len(c.ConnectionManager.Connections) == 0 {
-		fmt.Println("No connections configured")
-		return
+func (c *Cli) handleInit() {
+	if err := c.Config.Init(); err != nil {
+		fmt.Printf("Error initializing configuration: %v\n", err)
+		os.Exit(1)
 	}
+	fmt.Printf("Configuration initialized successfully at: %s\n", c.Config.Path)
+}
 
+func (c *Cli) handleList() {
 	fmt.Printf("%-15s %-8s %-20s %-8s %-15s %-12s %-8s\n", "NAME", "TYPE", "HOST", "PORT", "DATABASE", "STATUS", "SESSION")
 	fmt.Println("----------------------------------------------------------------------------------------")
 
 	for _, conn := range c.ConnectionManager.Connections {
 		status := "unreachable"
-		connector := conn.GetConnector()
-		if connector != nil && connector.TestConnection() {
+		if conn.TestConnection() {
 			status = "reachable"
 		}
 
@@ -117,20 +140,17 @@ func (c *Cli) handleAdd(args []string) {
 		os.Exit(1)
 	}
 
-	name := args[0]
-	connType := args[1]
-	conn, err := ParseConnectionFlags(connType, args[2:])
+	conn, err := ParseConnectionFlags(args)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		os.Exit(1)
 	}
 
-	conn.Name = name
-	if err := c.ConnectionManager.AddConnection(*conn); err != nil {
+	if err := c.ConnectionManager.AddConnection(*conn, c.Config.Path); err != nil {
 		fmt.Printf("Error adding connection: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Printf("%s connection '%s' added successfully\n", connType, name)
+	fmt.Printf("%s connection '%s' added successfully\n", conn.Type, conn.Name)
 }
 
 func (c *Cli) handleRemove(args []string) {
@@ -142,7 +162,7 @@ func (c *Cli) handleRemove(args []string) {
 
 	name := args[0]
 
-	if err := c.ConnectionManager.RemoveConnection(name); err != nil {
+	if err := c.ConnectionManager.RemoveConnection(name, c.Config.Path); err != nil {
 		fmt.Printf("Error removing connection: %v\n", err)
 		os.Exit(1)
 	}
@@ -158,65 +178,14 @@ func (c *Cli) handleConnect(args []string) {
 
 	name := args[0]
 
-	// check for existing non-active sessions
-	// if any, resume the first one found
-	sessions := c.ConnectionManager.GetSessionsByConnectionName(name)
-	for _, session := range sessions {
-		if session.Active {
-			continue
-		}
-		// bring the existing process to foreground
-		session.Continue()
-
-		fmt.Printf("Resuming existing session for '%s' (PID: %d)\n", name, session.PID)
-		err := c.ConnectionManager.Save()
-		if err != nil {
-			fmt.Printf("Error saving session: %v\n", err)
-			os.Exit(1)
-		}
-		return
-	}
-
-	// find the specified connection
-	conn, err := c.ConnectionManager.GetConnection(name)
-	if err != nil {
-		fmt.Printf("Connection '%s' not found: %v\n", name, err)
+	if err := c.ConnectionManager.Connect(name, c.Config.Path); err != nil {
+		fmt.Printf("Error connecting to '%s': %v\n", name, err)
 		os.Exit(1)
 	}
-	fmt.Printf("Connecting to %s database '%s'...\n", conn.Type, name)
-
-	// connect using the specified connector
-	connector := conn.GetConnector()
-	if connector == nil {
-		fmt.Printf("Error: unsupported connection type '%s'\n", conn.Type)
-		os.Exit(1)
-	}
-	cmd := connector.BuildCommand()
-	if cmd == nil {
-		fmt.Printf("Error: unable to build command for connection type '%s'\n", conn.Type)
-		os.Exit(1)
-	}
-	if err := cmd.Start(); err != nil {
-		fmt.Printf("Error starting %s: %v\n", conn.Type, err)
-		os.Exit(1)
-	}
-	// wait for the command to complete
-	if err := cmd.Wait(); err != nil {
-		fmt.Printf("%s exited with error: %v\n", conn.Type, err)
-	}
-
-	// add session to tracking
-	c.ConnectionManager.AddSession(name, cmd.Process.Pid)
-	fmt.Printf("Started new session for '%s' (PID: %d)\n", name, cmd.Process.Pid)
+	fmt.Printf("Connected to '%s'\n", name)
 }
 
 func (c *Cli) handleSessions() {
-	fmt.Println("sessions: ", c.ConnectionManager.Sessions)
-	if len(c.ConnectionManager.Sessions) == 0 {
-		fmt.Println("No active sessions")
-		return
-	}
-
 	fmt.Printf("%-15s %-8s %-20s %-8s\n", "CONNECTION", "PID", "STARTED", "ACTIVE")
 	fmt.Println("-------------------------------------------------------")
 
