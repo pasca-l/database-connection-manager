@@ -71,12 +71,27 @@ func (cm *ConnectionManager) Connect(name string, configPath string) error {
 	if err != nil {
 		return err
 	}
-	pid, err := conn.Connect()
+	cmd, err := conn.ConnectCmd()
 	if err != nil {
 		return fmt.Errorf("failed to connect to '%s': %v", name, err)
 	}
 
-	// add session to tracking
-	cm.Sessions.AddSession(NewSession(name, pid))
-	return cm.Save(configPath)
+	// start connection adding the session to the manager
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("failed to start command: %v", err)
+	}
+	cm.Sessions.AddSession(NewSession(name, cmd.Process.Pid))
+	if err := cm.Save(configPath); err != nil {
+		return err
+	}
+
+	// cleans up the managed session after the command finishes
+	if err := cmd.Wait(); err != nil {
+		return fmt.Errorf("failed to wait for command: %v", err)
+	}
+	cm.Sessions.RemoveSession(name, cmd.Process.Pid)
+	if err := cm.Save(configPath); err != nil {
+		return err
+	}
+	return nil
 }

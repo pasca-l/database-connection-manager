@@ -7,6 +7,13 @@ services:
       - postgresql_db
     stdin_open: true
     tty: true
+    command: |
+      sh -c "
+        dbcm init
+        dbcm add postgres psql -h postgresql_db -d psqldb -U psqluser -w psqlpw
+        dbcm add mysql mysql -h mysql_db -D mysqldb -u mysqluser -p mysqlpw
+        exec bash
+      "
 
   postgresql_db:
     image: postgres:16

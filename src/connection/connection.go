@@ -41,20 +41,16 @@ func (c Connection) TestConnection() bool {
 	return connector.TestConnection()
 }
 
-func (c Connection) Connect() (int, error) {
+func (c Connection) ConnectCmd() (*exec.Cmd, error) {
 	connector := c.GetConnector()
 	if connector == nil {
-		return 0, fmt.Errorf("unsupported connection type: %s", c.Type)
+		return nil, fmt.Errorf("unsupported connection type: %s", c.Type)
 	}
 	cmd := connector.BuildCommand()
 	if cmd == nil {
-		return 0, fmt.Errorf("failed to build command for connection: %s", c.Name)
+		return nil, fmt.Errorf("failed to build command for connection: %s", c.Name)
 	}
-	if err := cmd.Run(); err != nil {
-		return 0, fmt.Errorf("failed to connect to %s: %v", c.Name, err)
-	}
-
-	return cmd.Process.Pid, nil
+	return cmd, nil
 }
 
 func (cs *Connections) GetConnection(name string) (Connection, error) {

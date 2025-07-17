@@ -30,6 +30,12 @@ func (ss *Sessions) AddSession(s Session) {
 	*ss = append(*ss, s)
 }
 
+func (ss *Sessions) RemoveSession(name string, pid int) {
+	*ss = slices.DeleteFunc(*ss, func(s Session) bool {
+		return s.ConnectionName == name && s.PID == pid
+	})
+}
+
 func (ss *Sessions) RemoveSessionsByConnectionName(name string) error {
 	for i := len(*ss) - 1; i >= 0; i-- {
 		session := (*ss)[i]
