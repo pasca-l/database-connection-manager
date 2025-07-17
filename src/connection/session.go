@@ -13,7 +13,6 @@ type Session struct {
 	ConnectionName string    `json:"connection_name"`
 	PID            int       `json:"pid"`
 	Started        time.Time `json:"started"`
-	Active         bool      `json:"active"`
 }
 
 func (ss *Sessions) GetSessionsByConnectionName(name string) Sessions {
@@ -53,26 +52,11 @@ func (ss *Sessions) RemoveSessionsByConnectionName(name string) error {
 	return nil
 }
 
-func (ss *Sessions) CleanupSessions() {
-	var activeSessions Sessions
-	for _, session := range *ss {
-		if session.IsProcessAlive() {
-			activeSessions = append(activeSessions, session)
-		}
-	}
-	*ss = activeSessions
-}
-
-func (ss *Sessions) AnyActive() bool {
-	return slices.ContainsFunc(*ss, func(s Session) bool { return s.Active })
-}
-
 func NewSession(connectionName string, pid int) Session {
 	return Session{
 		ConnectionName: connectionName,
 		PID:            pid,
 		Started:        time.Now(),
-		Active:         true,
 	}
 }
 
@@ -95,12 +79,4 @@ func (s Session) Kill() error {
 		return err
 	}
 	return process.Kill()
-}
-
-func (s Session) Continue() error {
-	process, err := os.FindProcess(s.PID)
-	if err != nil {
-		return err
-	}
-	return process.Signal(syscall.SIGCONT)
 }

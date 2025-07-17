@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 )
 
 type ConnectionManager struct {
@@ -55,18 +57,6 @@ func (cm *ConnectionManager) GetSessionsByConnectionName(name string) Sessions {
 }
 
 func (cm *ConnectionManager) Connect(name string, configPath string) error {
-	// if any non-active sessions exist, resume the first one found
-	sessions := cm.Sessions.GetSessionsByConnectionName(name)
-	for _, session := range sessions {
-		if session.Active {
-			continue
-		}
-		// bring the existing process to foreground
-		session.Continue()
-		return cm.Save(configPath)
-	}
-
-	// if no non-active sessions found, start a new connection
 	conn, err := cm.Connections.GetConnection(name)
 	if err != nil {
 		return err
@@ -76,7 +66,7 @@ func (cm *ConnectionManager) Connect(name string, configPath string) error {
 		return fmt.Errorf("failed to connect to '%s': %v", name, err)
 	}
 
-	// start connection adding the session to the manager
+	// add session to manager after starting connection command
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("failed to start command: %v", err)
 	}
@@ -85,7 +75,16 @@ func (cm *ConnectionManager) Connect(name string, configPath string) error {
 		return err
 	}
 
-	// cleans up the managed session after the command finishes
+	// handle termination signals
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-sigChan
+		// forward signal to the command process
+		_ = cmd.Process.Signal(syscall.SIGINT)
+	}()
+
+	// remove session from manager after connection command finishes
 	if err := cmd.Wait(); err != nil {
 		return fmt.Errorf("failed to wait for command: %v", err)
 	}

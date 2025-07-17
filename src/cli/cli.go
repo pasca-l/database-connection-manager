@@ -68,8 +68,6 @@ func (c *Cli) HandleCommand() {
 		c.handleConnect(os.Args[2:])
 	case "sessions":
 		c.handleSessions()
-	case "-h", "--help", "help":
-		printUsage()
 	default:
 		printUsage()
 		os.Exit(1)
@@ -111,7 +109,7 @@ func (c *Cli) handleInit() {
 
 func (c *Cli) handleList() {
 	fmt.Printf("%-15s %-8s %-20s %-8s %-15s %-12s %-8s\n", "NAME", "TYPE", "HOST", "PORT", "DATABASE", "STATUS", "SESSION")
-	fmt.Println("----------------------------------------------------------------------------------------")
+	fmt.Println("---------------------------------------------------------------------------------------------")
 
 	for _, conn := range c.ConnectionManager.Connections {
 		status := "unreachable"
@@ -122,10 +120,7 @@ func (c *Cli) handleList() {
 		sessionStatus := ""
 		sessions := c.ConnectionManager.GetSessionsByConnectionName(conn.Name)
 		if len(sessions) > 0 {
-			sessionStatus = "active"
-			if sessions.AnyActive() {
-				sessionStatus = "active*"
-			}
+			sessionStatus = "active*"
 		}
 
 		fmt.Printf("%-15s %-8s %-20s %-8d %-15s %-12s %-8s\n",
@@ -178,24 +173,19 @@ func (c *Cli) handleConnect(args []string) {
 
 	name := args[0]
 
+	fmt.Printf("Connecting to '%s'\n", name)
 	if err := c.ConnectionManager.Connect(name, c.Config.Path); err != nil {
 		fmt.Printf("Error connecting to '%s': %v\n", name, err)
 		os.Exit(1)
 	}
-	fmt.Printf("Connected to '%s'\n", name)
 }
 
 func (c *Cli) handleSessions() {
-	fmt.Printf("%-15s %-8s %-20s %-8s\n", "CONNECTION", "PID", "STARTED", "ACTIVE")
-	fmt.Println("-------------------------------------------------------")
+	fmt.Printf("%-15s %-8s %-20s\n", "CONNECTION", "PID", "STARTED")
+	fmt.Println("-------------------------------------------")
 
 	for _, session := range c.ConnectionManager.Sessions {
-		active := ""
-		if session.Active {
-			active = "*"
-		}
-
-		fmt.Printf("%-15s %-8d %-20s %-8s\n",
-			session.ConnectionName, session.PID, session.Started.Format("2006-01-02 15:04"), active)
+		fmt.Printf("%-15s %-8d %-20s\n",
+			session.ConnectionName, session.PID, session.Started.Format("2006-01-02 15:04"))
 	}
 }
