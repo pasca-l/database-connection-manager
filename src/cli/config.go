@@ -27,16 +27,16 @@ func NewConfig() Config {
 
 func (c Config) Init() error {
 	if _, err := os.Stat(c.Path); err == nil {
-		return fmt.Errorf("configuration already exists")
+		return ErrConfigAlreadyExists
 	}
 
 	// create config directory if necessary
-	if err := os.MkdirAll(filepath.Dir(c.Path), 0755); err != nil {
-		return fmt.Errorf("error creating config directory: %v", err)
+	if err := os.MkdirAll(filepath.Dir(c.Path), 0750); err != nil {
+		return fmt.Errorf("error creating config directory: %w", err)
 	}
 	// create an empty config file
-	if err := os.WriteFile(c.Path, []byte("{}"), 0644); err != nil {
-		return fmt.Errorf("error creating config file: %v", err)
+	if err := os.WriteFile(c.Path, []byte("{}"), 0600); err != nil {
+		return fmt.Errorf("error creating config file: %w", err)
 	}
 
 	return nil
@@ -47,5 +47,5 @@ func (c Config) Load() ([]byte, error) {
 }
 
 func (c Config) Save(data []byte) error {
-	return os.WriteFile(c.Path, data, 0644)
+	return os.WriteFile(c.Path, data, 0600)
 }

@@ -43,7 +43,7 @@ func (ss *Sessions) RemoveSessionsByConnectionName(name string) error {
 			if session.IsProcessAlive() {
 				err := session.Kill()
 				if err != nil {
-					return fmt.Errorf("failed to kill session of connection %s: %v", name, err)
+					return fmt.Errorf("failed to kill session of connection %s: %w", name, err)
 				}
 			}
 			*ss = slices.Delete(*ss, i, i+1)

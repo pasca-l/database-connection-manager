@@ -17,7 +17,7 @@ func ParseConnectionFlags(args []string) (*connection.Connection, error) {
 	case "mysql":
 		return parseMySQLFlags(name, args[2:])
 	default:
-		return nil, fmt.Errorf("unsupported connection type: %s", dbType)
+		return nil, fmt.Errorf("%w: %s", ErrUnsupportedConnectionType, dbType)
 	}
 }
 
@@ -34,7 +34,9 @@ func parsePostgreSQLFlags(name string, flags []string) (*connection.Connection, 
 	password := psqlFlags.String("password", "", "Password")
 	passwordShort := psqlFlags.String("w", "", "Password (shorthand)")
 
-	psqlFlags.Parse(flags)
+	if err := psqlFlags.Parse(flags); err != nil {
+		return nil, fmt.Errorf("failed to parse psql flags: %w", err)
+	}
 
 	// use shorthand values if main flags are empty
 	if *host == "localhost" && *hostShort != "localhost" {
@@ -54,10 +56,10 @@ func parsePostgreSQLFlags(name string, flags []string) (*connection.Connection, 
 	}
 
 	if *database == "" {
-		return nil, fmt.Errorf("database name is required. Use -d or -database flag")
+		return nil, fmt.Errorf("%w. Use -d or -database flag", ErrDatabaseRequired)
 	}
 	if *username == "" {
-		return nil, fmt.Errorf("username is required. Use -U or -username flag")
+		return nil, fmt.Errorf("%w. Use -U or -username flag", ErrUsernameRequired)
 	}
 
 	return &connection.Connection{
@@ -84,7 +86,9 @@ func parseMySQLFlags(name string, flags []string) (*connection.Connection, error
 	password := mysqlFlags.String("password", "", "Password")
 	passwordShort := mysqlFlags.String("p", "", "Password (shorthand)")
 
-	mysqlFlags.Parse(flags)
+	if err := mysqlFlags.Parse(flags); err != nil {
+		return nil, fmt.Errorf("failed to parse mysql flags: %w", err)
+	}
 
 	// use shorthand values if main flags are empty
 	if *host == "localhost" && *hostShort != "localhost" {
@@ -104,10 +108,10 @@ func parseMySQLFlags(name string, flags []string) (*connection.Connection, error
 	}
 
 	if *database == "" {
-		return nil, fmt.Errorf("database name is required. Use -D or -database flag")
+		return nil, fmt.Errorf("%w. Use -D or -database flag", ErrDatabaseRequired)
 	}
 	if *username == "" {
-		return nil, fmt.Errorf("username is required. Use -u or -username flag")
+		return nil, fmt.Errorf("%w. Use -u or -username flag", ErrUsernameRequired)
 	}
 
 	return &connection.Connection{

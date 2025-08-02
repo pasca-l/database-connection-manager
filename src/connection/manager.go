@@ -26,7 +26,7 @@ func (cm *ConnectionManager) Save(configPath string) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(configPath, data, 0644)
+	return os.WriteFile(configPath, data, 0600)
 }
 
 func (cm *ConnectionManager) Clear(configPath string) error {
@@ -63,12 +63,12 @@ func (cm *ConnectionManager) Connect(name string, configPath string) error {
 	}
 	cmd, err := conn.ConnectCmd()
 	if err != nil {
-		return fmt.Errorf("failed to connect to '%s': %v", name, err)
+		return fmt.Errorf("failed to connect to '%s': %w", name, err)
 	}
 
 	// add session to manager after starting connection command
 	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("failed to start command: %v", err)
+		return fmt.Errorf("failed to start command: %w", err)
 	}
 	cm.Sessions.AddSession(NewSession(name, cmd.Process.Pid))
 	if err := cm.Save(configPath); err != nil {
@@ -86,7 +86,7 @@ func (cm *ConnectionManager) Connect(name string, configPath string) error {
 
 	// remove session from manager after connection command finishes
 	if err := cmd.Wait(); err != nil {
-		return fmt.Errorf("failed to wait for command: %v", err)
+		return fmt.Errorf("failed to wait for command: %w", err)
 	}
 	cm.Sessions.RemoveSession(name, cmd.Process.Pid)
 	if err := cm.Save(configPath); err != nil {

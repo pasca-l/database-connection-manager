@@ -44,11 +44,11 @@ func (c Connection) TestConnection() bool {
 func (c Connection) ConnectCmd() (*exec.Cmd, error) {
 	connector := c.GetConnector()
 	if connector == nil {
-		return nil, fmt.Errorf("unsupported connection type: %s", c.Type)
+		return nil, fmt.Errorf("%w: %s", ErrUnsupportedConnectionType, c.Type)
 	}
 	cmd := connector.BuildCommand()
 	if cmd == nil {
-		return nil, fmt.Errorf("failed to build command for connection: %s", c.Name)
+		return nil, fmt.Errorf("%w: %s", ErrBuildCommandFailed, c.Name)
 	}
 	return cmd, nil
 }
@@ -59,13 +59,13 @@ func (cs *Connections) GetConnection(name string) (Connection, error) {
 			return conn, nil
 		}
 	}
-	return Connection{}, fmt.Errorf("connection not found: %s", name)
+	return Connection{}, fmt.Errorf("%w: %s", ErrConnectionNotFound, name)
 }
 
 func (cs *Connections) AddConnection(conn Connection) error {
 	for _, existing := range *cs {
 		if existing.Name == conn.Name {
-			return fmt.Errorf("connection already exists: %s", conn.Name)
+			return fmt.Errorf("%w: %s", ErrConnectionAlreadyExists, conn.Name)
 		}
 	}
 	*cs = append(*cs, conn)
@@ -79,5 +79,5 @@ func (cs *Connections) RemoveConnection(name string) error {
 			return nil
 		}
 	}
-	return fmt.Errorf("connection not found: %s", name)
+	return fmt.Errorf("%w: %s", ErrConnectionNotFound, name)
 }
