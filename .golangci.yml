@@ -1,0 +1,29 @@
+version: "2"
+
+linters:
+  # referenced: https://golangci-lint.run/usage/linters/#enabled-by-default
+  default: standard
+  enable:
+    - cyclop # checks function and package cyclomatic complexity
+    - err113 # check errors handling expressions
+    - gocognit # computes and checks the cognitive complexity of functions
+    - gocritic # provides diagnostics that check for bugs, performance and style issues
+    - gosec # inspects source code for security problems
+    - musttag # enforce field tags in (un)marshaled structs
+    - recvcheck # checks for receiver type consistency
+    - revive # fast, configurable, extensible, flexible, and beautiful linter for Go
+  settings:
+    cyclop:
+      max-complexity: 15
+    gosec:
+      excludes:
+        - G204 # checks for subprocess launched with variable arguments
+    revive:
+      rules:
+        - name: exported # checks for exported functions to have comments
+          disabled: true
+
+run:
+  timeout: 5m
+  # exclude test files
+  tests: false
