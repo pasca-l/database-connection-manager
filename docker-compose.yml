@@ -5,6 +5,7 @@ services:
       dockerfile: Dockerfile
     depends_on:
       - postgresql_db
+      - mysql_db
     stdin_open: true
     tty: true
     command: |
