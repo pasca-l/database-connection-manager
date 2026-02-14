@@ -1,10 +1,13 @@
-package cli
+package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 )
+
+var ErrConfigAlreadyExists = errors.New("configuration already exists")
 
 type Config struct {
 	Path string
