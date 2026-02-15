@@ -1,10 +1,14 @@
 # Database Connection Manager
 Local database connection manager.
+> currently compatible with: PostgreSQL, MySQL
 
-## Requirements
-- Go 1.26
+## Installation
+### Homebrew
+```bash
+$ brew install --cask pasca-l/tap/database-connection-manager
+```
 
-## Usage
+### Local build (requires Go 1.26)
 1. Build binary for command (file will be generated under `./bin/dbcm` by default).
 ```bash
 $ mise build
@@ -16,14 +20,16 @@ $ mise build
 $ export PATH=$PWD/bin:$PATH
 ```
 
-3. Use the command to manage local database connections.
-- compatible with: postgresql, mysql
+## Usage
 ```bash
 # for the first time, initialize file to store managing states
 $ dbcm init
 
 # add connection to management
-$ dbcm add psql <name> -h localhost -d testdb -u user -w pw
+# with psql syntax for PostgreSQL
+$ dbcm add psql <name> -h localhost -d db -U user -w pw -p 5432
+# with mysql syntax for MySQL
+$ dbcm add mysql <name> -h localhost -D db -u user -p pw -P 3306
 
 # connect to database by given name
 $ dbcm connect <name>
