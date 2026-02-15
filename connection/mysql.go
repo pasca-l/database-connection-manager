@@ -12,8 +12,20 @@ type MySQLConnector struct {
 }
 
 func (m MySQLConnector) TestConnection() bool {
-	cmd := exec.Command("mysqladmin", "-h", m.Host, "-P", strconv.Itoa(m.Port), "-u", m.Username, "-p"+m.Password, "ping")
-	err := cmd.Run()
+	cmdPath, err := exec.LookPath("mysqladmin")
+	if err != nil {
+		cmdPath = "/opt/homebrew/opt/mysql-client/bin/mysqladmin"
+	}
+
+	cmd := exec.Command(
+		cmdPath,
+		"-h", m.Host,
+		"-P", strconv.Itoa(m.Port),
+		"-u", m.Username,
+		"-p"+m.Password,
+		"ping",
+	)
+	err = cmd.Run()
 	return err == nil
 }
 
@@ -25,7 +37,12 @@ func (m MySQLConnector) BuildCommand() *exec.Cmd {
 		m.Database,
 	}
 
-	cmd := exec.Command("mysql", args...)
+	cmdPath, err := exec.LookPath("mysql")
+	if err != nil {
+		cmdPath = "/opt/homebrew/opt/mysql-client/bin/mysql"
+	}
+
+	cmd := exec.Command(cmdPath, args...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
