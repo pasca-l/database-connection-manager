@@ -39,7 +39,9 @@ release:
     Released by [GoReleaser](https://github.com/goreleaser/goreleaser).
 
 homebrew_casks:
-  - repository:
+  - binaries:
+      - dbcm
+    repository:
       owner: pasca-l
       name: homebrew-tap
       token: "{{ .Env.TAP_TOKEN }}"
