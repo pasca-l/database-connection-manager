@@ -1,0 +1,27 @@
+[tools]
+go = "1.26"
+
+[tasks.build]
+description = "Build the database-connection-manager binary"
+run = "go build -o bin/dbcm"
+
+[tasks.format]
+description = "Format the code"
+run = "go fmt ./..."
+
+[tasks.lint]
+description = "Run linter on the code"
+run = "docker run -t --rm -v $PWD:/app -w /app golangci/golangci-lint:v2.9.0 golangci-lint run"
+
+[tasks.test]
+description = "Run tests"
+run = "go test -v -race -cover -covermode=atomic ./..."
+
+[tasks.docker-test]
+description = "Build docker environment to test database-connection-manager binary"
+run = [
+  "GOOS=linux GOARCH=amd64 go build -o bin/dbcm-linux",
+  "docker compose up --build -d",
+  "docker compose exec db_client bash",
+  "docker compose down -v"
+]

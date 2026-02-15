@@ -4,23 +4,23 @@ services:
       context: .
       dockerfile: Dockerfile
     depends_on:
-      - postgresql_db
+      - psql_db
       - mysql_db
     stdin_open: true
     tty: true
     command: |
       sh -c "
-        dbcm init
-        dbcm add postgres psql -h postgresql_db -d psqldb -U psqluser -w psqlpw
-        dbcm add mysql mysql -h mysql_db -D mysqldb -u mysqluser -p mysqlpw
+        dbcm-linux init
+        dbcm-linux add psql postgres -h psql_db -d psqldb -U psqlu -w psqlpw
+        dbcm-linux add mysql mysql -h mysql_db -D mysqldb -u mysqlu -p mysqlpw
         exec bash
       "
 
-  postgresql_db:
+  psql_db:
     image: postgres:16
     environment:
       POSTGRES_DB: psqldb
-      POSTGRES_USER: psqluser
+      POSTGRES_USER: psqlu
       POSTGRES_PASSWORD: psqlpw
     ports:
       - "5432:5432"
@@ -31,7 +31,7 @@ services:
     image: mysql:8.0
     environment:
       MYSQL_DATABASE: mysqldb
-      MYSQL_USER: mysqluser
+      MYSQL_USER: mysqlu
       MYSQL_PASSWORD: mysqlpw
       MYSQL_ROOT_PASSWORD: rootpw
     ports:
