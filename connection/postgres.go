@@ -30,7 +30,7 @@ func (p PostgreSQLConnector) BuildCommand() *exec.Cmd {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	// set PGPASSWORD environment variable if password is provided
+	// Set PGPASSWORD environment variable if password is provided.
 	if p.Password != "" {
 		cmd.Env = append(os.Environ(), "PGPASSWORD="+p.Password)
 	}

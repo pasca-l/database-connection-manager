@@ -32,7 +32,7 @@ var addPsqlCmd = &cobra.Command{
 			return err
 		}
 
-		// use default port for PostgreSQL if not explicitly set
+		// Use default port for PostgreSQL if not explicitly set.
 		if !cmd.Flags().Changed("port") {
 			flags.Port = 5432
 		}
@@ -76,7 +76,7 @@ var addMysqlCmd = &cobra.Command{
 			return err
 		}
 
-		// use default port for MySQL if not explicitly set
+		// Use default port for MySQL if not explicitly set.
 		if !cmd.Flags().Changed("port") {
 			flags.Port = 3306
 		}
@@ -149,22 +149,22 @@ func parseFlags(cmd *cobra.Command) (*dnsFlags, error) {
 func init() {
 	rootCmd.AddCommand(addCmd)
 
-	// add database-specific subcommands
+	// Add database-specific subcommands.
 	addCmd.AddCommand(addPsqlCmd)
 	addCmd.AddCommand(addMysqlCmd)
 
-	// disable automatic help flag to allow -h for host
+	// Disable automatic help flag to allow -h for host.
 	addPsqlCmd.Flags().BoolP("help", "", false, "Help for psql")
 	addMysqlCmd.Flags().BoolP("help", "", false, "Help for mysql")
 
-	// PostgreSQL-specific flags (matching psql conventions)
+	// PostgreSQL-specific flags (matching psql conventions).
 	addPsqlCmd.Flags().StringP("host", "h", "localhost", "Database host")
 	addPsqlCmd.Flags().IntP("port", "p", 5432, "Database port")
 	addPsqlCmd.Flags().StringP("database", "d", "", "Database name (required)")
 	addPsqlCmd.Flags().StringP("username", "U", "", "Username (required)")
 	addPsqlCmd.Flags().StringP("password", "w", "", "Password (optional)")
 
-	// MySQL-specific flags (matching mysql conventions)
+	// MySQL-specific flags (matching mysql conventions).
 	addMysqlCmd.Flags().StringP("host", "h", "localhost", "Database host")
 	addMysqlCmd.Flags().IntP("port", "P", 3306, "Database port")
 	addMysqlCmd.Flags().StringP("database", "D", "", "Database name (required)")

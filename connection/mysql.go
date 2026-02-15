@@ -30,7 +30,7 @@ func (m MySQLConnector) BuildCommand() *exec.Cmd {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	// set MYSQL_PWD environment variable if password is provided
+	// Set MYSQL_PWD environment variable if password is provided.
 	if m.Password != "" {
 		cmd.Env = append(os.Environ(), fmt.Sprintf("MYSQL_PWD=%s", m.Password))
 	}

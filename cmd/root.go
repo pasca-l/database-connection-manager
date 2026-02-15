@@ -19,11 +19,11 @@ var rootCmd = &cobra.Command{
 	Short: "Database Connection Manager",
 	Long:  `A CLI tool to manage database connections for PostgreSQL and MySQL.`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		// Skip loading config for init command
+		// Skip loading config for init command.
 		if cmd.Name() == "init" {
 			return nil
 		}
-		// Load configuration for all other commands
+		// Load configuration for all other commands.
 		return connectionManager.Load()
 	},
 }

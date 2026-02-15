@@ -36,11 +36,11 @@ func (c Config) Init() error {
 		return ErrConfigAlreadyExists
 	}
 
-	// create config directory if necessary
+	// Create config directory if necessary.
 	if err := os.MkdirAll(filepath.Dir(c.Path), 0750); err != nil {
 		return fmt.Errorf("error creating config directory: %w", err)
 	}
-	// create an empty config file
+	// Create an empty config file.
 	if err := os.WriteFile(c.Path, []byte("{}"), 0600); err != nil {
 		return fmt.Errorf("error creating config file: %w", err)
 	}
