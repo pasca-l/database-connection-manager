@@ -26,11 +26,23 @@ func (cm *ConnectionManager) Load() error {
 	if err != nil {
 		return err
 	}
-	return json.Unmarshal(data, cm)
+	if err := json.Unmarshal(data, cm); err != nil {
+		return err
+	}
+	return cm.Connections.DecryptPasswords()
 }
 
 func (cm *ConnectionManager) Save() error {
-	data, err := json.MarshalIndent(cm, "", "  ")
+	// Create a copy of connections to encrypt passwords.
+	encryptedConnections := make(Connections, len(cm.Connections))
+	copy(encryptedConnections, cm.Connections)
+	if err := encryptedConnections.EncryptPasswords(); err != nil {
+		return err
+	}
+
+	data, err := json.MarshalIndent(
+		&ConnectionManager{Connections: encryptedConnections}, "", "  ",
+	)
 	if err != nil {
 		return err
 	}

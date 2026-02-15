@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"os/exec"
+
+	"github.com/pasca-l/database-connection-manager/utils"
 )
 
 var (
@@ -88,4 +90,32 @@ func (cs *Connections) RemoveConnection(name string) error {
 		}
 	}
 	return fmt.Errorf("%w: %s", ErrConnectionNotFound, name)
+}
+
+func (cs *Connections) EncryptPasswords() error {
+	for i := range *cs {
+		if (*cs)[i].Password == "" {
+			continue
+		}
+		encrypted, err := utils.Encrypt((*cs)[i].Password)
+		if err != nil {
+			return fmt.Errorf("error encrypting password for '%s': %w", (*cs)[i].Name, err)
+		}
+		(*cs)[i].Password = encrypted
+	}
+	return nil
+}
+
+func (cs *Connections) DecryptPasswords() error {
+	for i := range *cs {
+		if (*cs)[i].Password == "" {
+			continue
+		}
+		decrypted, err := utils.Decrypt((*cs)[i].Password)
+		if err != nil {
+			return fmt.Errorf("error decrypting password for '%s': %w", (*cs)[i].Name, err)
+		}
+		(*cs)[i].Password = decrypted
+	}
+	return nil
 }
