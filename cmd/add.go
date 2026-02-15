@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/pasca-l/database-connection-manager/connection"
@@ -12,6 +13,11 @@ var addCmd = &cobra.Command{
 	Short: "Add a new database connection",
 	Long:  `Add a new database connection to the manager. Use subcommands for specific database types.`,
 }
+
+var (
+	ErrDatabaseNameRequired = errors.New("database name is required (use -d or --database)")
+	ErrUsernameRequired     = errors.New("username is required (use -U or --username)")
+)
 
 var addPsqlCmd = &cobra.Command{
 	Use:   "psql <name>",
@@ -32,10 +38,10 @@ var addPsqlCmd = &cobra.Command{
 		}
 
 		if flags.Database == "" {
-			return fmt.Errorf("database name is required (use -d or --database)")
+			return ErrDatabaseNameRequired
 		}
 		if flags.Username == "" {
-			return fmt.Errorf("username is required (use -U or --username)")
+			return ErrUsernameRequired
 		}
 
 		conn := &connection.Connection{
@@ -76,10 +82,10 @@ var addMysqlCmd = &cobra.Command{
 		}
 
 		if flags.Database == "" {
-			return fmt.Errorf("database name is required (use -d or --database)")
+			return ErrDatabaseNameRequired
 		}
 		if flags.Username == "" {
-			return fmt.Errorf("username is required (use -u or --username)")
+			return ErrUsernameRequired
 		}
 
 		conn := &connection.Connection{
