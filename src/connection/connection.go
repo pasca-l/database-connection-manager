@@ -7,10 +7,10 @@ import (
 )
 
 var (
-	ErrUnsupportedConnectionType = errors.New("unsupported connection type")
-	ErrConnectionAlreadyExists   = errors.New("connection already exists")
-	ErrConnectionNotFound        = errors.New("connection not found")
-	ErrBuildCommandFailed        = errors.New("failed to build command for connection")
+	ErrUnsupportedConnectionType   = errors.New("unsupported connection type")
+	ErrConnectionAlreadyRegistered = errors.New("connection already registered")
+	ErrConnectionNotFound          = errors.New("connection not found")
+	ErrBuildCommandFailed          = errors.New("failed to build command for connection")
 )
 
 type Connector interface {
@@ -73,7 +73,7 @@ func (cs *Connections) GetConnection(name string) (Connection, error) {
 func (cs *Connections) AddConnection(conn Connection) error {
 	for _, existing := range *cs {
 		if existing.Name == conn.Name {
-			return fmt.Errorf("%w: %s", ErrConnectionAlreadyExists, conn.Name)
+			return fmt.Errorf("%w: %s", ErrConnectionAlreadyRegistered, conn.Name)
 		}
 	}
 	*cs = append(*cs, conn)

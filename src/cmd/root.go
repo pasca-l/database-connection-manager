@@ -11,13 +11,21 @@ import (
 
 var (
 	cfg               config.Config
-	connectionManager connection.ConnectionManager
+	connectionManager *connection.ConnectionManager
 )
 
 var rootCmd = &cobra.Command{
 	Use:   "dbcm",
 	Short: "Database Connection Manager",
-	Long:  `A CLI tool to manage database connections and sessions for PostgreSQL and MySQL.`,
+	Long:  `A CLI tool to manage database connections for PostgreSQL and MySQL.`,
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		// Skip loading config for init command
+		if cmd.Name() == "init" {
+			return nil
+		}
+		// Load configuration for all other commands
+		return connectionManager.Load()
+	},
 }
 
 func Execute() {
@@ -29,24 +37,5 @@ func Execute() {
 
 func init() {
 	cfg = config.NewConfig()
-	connectionManager = connection.NewConnectionManager()
-}
-
-// loadConfig loads the configuration and connection manager state
-// This should be called by commands that need the config (all except init)
-func loadConfig() error {
-	if _, err := os.Stat(cfg.Path); os.IsNotExist(err) {
-		return fmt.Errorf("configuration not found\nRun 'dbcm init' to initialize")
-	}
-
-	state, err := cfg.Load()
-	if err != nil {
-		return fmt.Errorf("error loading configuration: %w", err)
-	}
-
-	if err := connectionManager.Load(state); err != nil {
-		return fmt.Errorf("error loading connection manager state: %w", err)
-	}
-
-	return nil
+	connectionManager = connection.NewConnectionManager(cfg)
 }

@@ -22,19 +22,18 @@ func (m MySQLConnector) BuildCommand() *exec.Cmd {
 		"-h", m.Host,
 		"-P", strconv.Itoa(m.Port),
 		"-u", m.Username,
-	}
-
-	if m.Database != "" {
-		args = append(args, m.Database)
-	}
-	if m.Password != "" {
-		args = append(args, fmt.Sprintf("-p%s", m.Password))
+		m.Database,
 	}
 
 	cmd := exec.Command("mysql", args...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+
+	// set MYSQL_PWD environment variable if password is provided
+	if m.Password != "" {
+		cmd.Env = append(os.Environ(), fmt.Sprintf("MYSQL_PWD=%s", m.Password))
+	}
 
 	return cmd
 }

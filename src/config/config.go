@@ -7,7 +7,10 @@ import (
 	"path/filepath"
 )
 
-var ErrConfigAlreadyExists = errors.New("configuration already exists")
+var (
+	ErrConfigAlreadyExists = errors.New("configuration already exists")
+	ErrConfigNotFound      = errors.New("configuration not found\nRun 'dbcm init' to initialize")
+)
 
 type Config struct {
 	Path string
@@ -46,6 +49,9 @@ func (c Config) Init() error {
 }
 
 func (c Config) Load() ([]byte, error) {
+	if _, err := os.Stat(c.Path); os.IsNotExist(err) {
+		return nil, ErrConfigNotFound
+	}
 	return os.ReadFile(c.Path)
 }
 

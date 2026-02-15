@@ -12,13 +12,9 @@ var removeCmd = &cobra.Command{
 	Long:  `Remove a database connection from the connection manager.`,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := loadConfig(); err != nil {
-			return err
-		}
-
 		name := args[0]
 
-		if err := connectionManager.RemoveConnection(name, cfg.Path); err != nil {
+		if err := connectionManager.RemoveConnection(name); err != nil {
 			return fmt.Errorf("error removing connection: %w", err)
 		}
 

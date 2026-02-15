@@ -8,21 +8,25 @@ import (
 
 var connectCmd = &cobra.Command{
 	Use:   "connect <name>",
-	Short: "Connect to a database (creates/resumes session)",
-	Long:  `Connect to a database using the specified connection name. Creates a new session or resumes an existing one.`,
+	Short: "Connect to a database",
+	Long:  `Connect to a database using the specified connection name and launch the native database client.`,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := loadConfig(); err != nil {
-			return err
-		}
-
 		name := args[0]
 
-		fmt.Printf("Connecting to '%s'\n", name)
-		if err := connectionManager.Connect(name, cfg.Path); err != nil {
-			return fmt.Errorf("error connecting to '%s': %w", name, err)
+		conn, err := connectionManager.GetConnection(name)
+		if err != nil {
+			return fmt.Errorf("connection '%s' not found: %w", name, err)
+		}
+		dbCmd, err := conn.ConnectCmd()
+		if err != nil {
+			return fmt.Errorf("failed to build connection command: %w", err)
 		}
 
+		fmt.Printf("Connecting to '%s'...\n", name)
+		if err := dbCmd.Run(); err != nil {
+			return fmt.Errorf("error connecting to '%s': %w", name, err)
+		}
 		return nil
 	},
 }

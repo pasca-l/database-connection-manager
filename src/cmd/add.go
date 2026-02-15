@@ -8,101 +8,130 @@ import (
 )
 
 var addCmd = &cobra.Command{
-	Use:   "add <name> <type>",
+	Use:   "add",
 	Short: "Add a new database connection",
-	Long: `Add a new database connection to the manager.
-Supported types: psql (PostgreSQL), mysql (MySQL)`,
-	Args: cobra.ExactArgs(2),
+	Long:  `Add a new database connection to the manager. Use subcommands for specific database types.`,
+}
+
+var addPsqlCmd = &cobra.Command{
+	Use:   "psql <name>",
+	Short: "Add a PostgreSQL connection",
+	Long:  `Add a PostgreSQL database connection with PostgreSQL-specific flags.`,
+	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := loadConfig(); err != nil {
-			return err
-		}
-
 		name := args[0]
-		dbType := args[1]
 
-		var conn *connection.Connection
-		var err error
-
-		switch dbType {
-		case "psql":
-			conn, err = createPostgreSQLConnection(cmd, name)
-		case "mysql":
-			conn, err = createMySQLConnection(cmd, name)
-		default:
-			return fmt.Errorf("unsupported connection type: %s", dbType)
-		}
-
+		flags, err := parseFlags(cmd)
 		if err != nil {
 			return err
 		}
 
-		if err := connectionManager.AddConnection(*conn, cfg.Path); err != nil {
+		// use default port for PostgreSQL if not explicitly set
+		if !cmd.Flags().Changed("port") {
+			flags.Port = 5432
+		}
+
+		if flags.Database == "" {
+			return fmt.Errorf("database name is required (use -d or --database)")
+		}
+		if flags.Username == "" {
+			return fmt.Errorf("username is required (use -U or --username)")
+		}
+
+		conn := &connection.Connection{
+			Name:     name,
+			Type:     "psql",
+			Host:     flags.Host,
+			Port:     flags.Port,
+			Database: flags.Database,
+			Username: flags.Username,
+			Password: flags.Password,
+		}
+
+		if err := connectionManager.AddConnection(*conn); err != nil {
 			return fmt.Errorf("error adding connection: %w", err)
 		}
 
-		fmt.Printf("%s connection '%s' added successfully\n", conn.Type, conn.Name)
+		fmt.Printf("PostgreSQL connection '%s' added successfully\n", conn.Name)
 		return nil
 	},
 }
 
-func createPostgreSQLConnection(cmd *cobra.Command, name string) (*connection.Connection, error) {
-	host, _ := cmd.Flags().GetString("host")
-	port, _ := cmd.Flags().GetInt("port")
-	database, _ := cmd.Flags().GetString("database")
-	username, _ := cmd.Flags().GetString("username")
-	password, _ := cmd.Flags().GetString("password")
+var addMysqlCmd = &cobra.Command{
+	Use:   "mysql <name>",
+	Short: "Add a MySQL connection",
+	Long:  `Add a MySQL database connection with MySQL-specific flags.`,
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		name := args[0]
 
-	// Use default port for PostgreSQL if not explicitly set
-	if !cmd.Flags().Changed("port") && !cmd.Flags().Changed("p") {
-		port = 5432
-	}
+		flags, err := parseFlags(cmd)
+		if err != nil {
+			return err
+		}
 
-	if database == "" {
-		return nil, fmt.Errorf("database name is required. Use -d or --database flag")
-	}
-	if username == "" {
-		return nil, fmt.Errorf("username is required. Use -U or --username flag")
-	}
+		// use default port for MySQL if not explicitly set
+		if !cmd.Flags().Changed("port") {
+			flags.Port = 3306
+		}
 
-	return &connection.Connection{
-		Name:     name,
-		Type:     "psql",
-		Host:     host,
-		Port:     port,
-		Database: database,
-		Username: username,
-		Password: password,
-	}, nil
+		if flags.Database == "" {
+			return fmt.Errorf("database name is required (use -d or --database)")
+		}
+		if flags.Username == "" {
+			return fmt.Errorf("username is required (use -u or --username)")
+		}
+
+		conn := &connection.Connection{
+			Name:     name,
+			Type:     "mysql",
+			Host:     flags.Host,
+			Port:     flags.Port,
+			Database: flags.Database,
+			Username: flags.Username,
+			Password: flags.Password,
+		}
+
+		if err := connectionManager.AddConnection(*conn); err != nil {
+			return fmt.Errorf("error adding connection: %w", err)
+		}
+
+		fmt.Printf("MySQL connection '%s' added successfully\n", conn.Name)
+		return nil
+	},
 }
 
-func createMySQLConnection(cmd *cobra.Command, name string) (*connection.Connection, error) {
-	host, _ := cmd.Flags().GetString("host")
+type dnsFlags struct {
+	Host     string
+	Port     int
+	Database string
+	Username string
+	Password string
+}
 
-	// For MySQL, check both -P (uppercase) and -p flags
-	port := 3306
-	if cmd.Flags().Changed("port") || cmd.Flags().Changed("p") {
-		port, _ = cmd.Flags().GetInt("port")
+func parseFlags(cmd *cobra.Command) (*dnsFlags, error) {
+	host, err := cmd.Flags().GetString("host")
+	if err != nil {
+		return nil, fmt.Errorf("error reading host flag: %w", err)
+	}
+	port, err := cmd.Flags().GetInt("port")
+	if err != nil {
+		return nil, fmt.Errorf("error reading port flag: %w", err)
+	}
+	database, err := cmd.Flags().GetString("database")
+	if err != nil {
+		return nil, fmt.Errorf("error reading database flag: %w", err)
+	}
+	username, err := cmd.Flags().GetString("username")
+	if err != nil {
+		return nil, fmt.Errorf("error reading username flag: %w", err)
+	}
+	password, err := cmd.Flags().GetString("password")
+	if err != nil {
+		return nil, fmt.Errorf("error reading password flag: %w", err)
 	}
 
-	// For MySQL, check both -D and -d flags for database
-	database, _ := cmd.Flags().GetString("database")
-
-	// For MySQL, check both -u and -U flags for username
-	username, _ := cmd.Flags().GetString("username")
-
-	password, _ := cmd.Flags().GetString("password")
-
-	if database == "" {
-		return nil, fmt.Errorf("database name is required. Use -D or --database flag")
-	}
-	if username == "" {
-		return nil, fmt.Errorf("username is required. Use -u or --username flag")
-	}
-
-	return &connection.Connection{
-		Name:     name,
-		Type:     "mysql",
+	return &dnsFlags{
 		Host:     host,
 		Port:     port,
 		Database: database,
@@ -114,11 +143,25 @@ func createMySQLConnection(cmd *cobra.Command, name string) (*connection.Connect
 func init() {
 	rootCmd.AddCommand(addCmd)
 
-	// Common flags that work for both PostgreSQL and MySQL
-	// Note: Using long-form --host instead of -h to avoid conflict with Cobra's help flag
-	addCmd.Flags().String("host", "localhost", "Database host")
-	addCmd.Flags().IntP("port", "p", 0, "Database port (default: psql=5432, mysql=3306)")
-	addCmd.Flags().StringP("database", "d", "", "Database name (required)")
-	addCmd.Flags().StringP("username", "U", "", "Username (required, -U for psql, -u for mysql)")
-	addCmd.Flags().StringP("password", "w", "", "Password (optional)")
+	// add database-specific subcommands
+	addCmd.AddCommand(addPsqlCmd)
+	addCmd.AddCommand(addMysqlCmd)
+
+	// disable automatic help flag to allow -h for host
+	addPsqlCmd.Flags().BoolP("help", "", false, "Help for psql")
+	addMysqlCmd.Flags().BoolP("help", "", false, "Help for mysql")
+
+	// PostgreSQL-specific flags (matching psql conventions)
+	addPsqlCmd.Flags().StringP("host", "h", "localhost", "Database host")
+	addPsqlCmd.Flags().IntP("port", "p", 5432, "Database port")
+	addPsqlCmd.Flags().StringP("database", "d", "", "Database name (required)")
+	addPsqlCmd.Flags().StringP("username", "U", "", "Username (required)")
+	addPsqlCmd.Flags().StringP("password", "w", "", "Password (optional)")
+
+	// MySQL-specific flags (matching mysql conventions)
+	addMysqlCmd.Flags().StringP("host", "h", "localhost", "Database host")
+	addMysqlCmd.Flags().IntP("port", "P", 3306, "Database port")
+	addMysqlCmd.Flags().StringP("database", "D", "", "Database name (required)")
+	addMysqlCmd.Flags().StringP("username", "u", "", "Username (required)")
+	addMysqlCmd.Flags().StringP("password", "p", "", "Password (optional)")
 }
