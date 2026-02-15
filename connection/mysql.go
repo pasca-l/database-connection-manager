@@ -23,6 +23,7 @@ func (m MySQLConnector) TestConnection() bool {
 		"-P", strconv.Itoa(m.Port),
 		"-u", m.Username,
 		"-p"+m.Password,
+		"--protocol=TCP",
 		"ping",
 	)
 	err = cmd.Run()
@@ -34,6 +35,7 @@ func (m MySQLConnector) BuildCommand() *exec.Cmd {
 		"-h", m.Host,
 		"-P", strconv.Itoa(m.Port),
 		"-u", m.Username,
+		"--protocol=TCP",
 		m.Database,
 	}
 
