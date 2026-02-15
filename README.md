@@ -2,12 +2,12 @@
 Local database connection manager.
 
 ## Requirements
-- Go 1.24
+- Go 1.26
 
 ## Usage
 1. Build binary for command (file will be generated under `./bin/dbcm` by default).
 ```bash
-$ make build
+$ mise build
 ```
 
 2. (optional) Add path to bin file.
@@ -23,25 +23,19 @@ $ export PATH=$PWD/bin:$PATH
 $ dbcm init
 
 # add connection to management
-$ dbcm add test psql -h localhost -d testdb -u user -w pw
+$ dbcm add psql <name> -h localhost -d testdb -u user -w pw
 
 # connect to database by given name
-$ dbcm connect test
+$ dbcm connect <name>
 
-# show connections and sessions
+# show connections
 $ dbcm ls
-$ dbcm sessions
 ```
 
-## Run on development mode
-1. Set up docker containers.
+## Run on docker environment
+1. Build the environment.
 ```bash
-$ make start
+$ mise docker-test
 ```
 
-2. Enter docker container with database client.
-```bash
-$ make client
-```
-
-3. Use the `dbcm` command.
+2. Use the `dbcm-linux` (linux compatible binary) command.
