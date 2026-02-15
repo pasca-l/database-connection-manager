@@ -41,7 +41,16 @@ release:
 homebrew_casks:
   - binaries:
       - dbcm
+    dependencies:
+      - formula: libpq
+      - formula: mysql-client
     repository:
       owner: pasca-l
       name: homebrew-tap
       token: "{{ .Env.TAP_TOKEN }}"
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/dbcm"]
+          end
