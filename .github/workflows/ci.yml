@@ -9,6 +9,20 @@ on:
       - main
 
 jobs:
+  format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+      - run: |
+          go fmt ./...
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "Go code is not formatted properly."
+            git diff
+            exit 1
+          fi
+
   lint:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -17,8 +31,7 @@ jobs:
       - uses: actions/setup-go@v5
       - uses: golangci/golangci-lint-action@9fae48acfc02a90574d7c304a1758ef9895495fa # v7.0.1
         with:
-          version: v2.1.0
-          working-directory: src
+          version: v2.9.0
 
   test:
     runs-on: ubuntu-latest
@@ -27,4 +40,3 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
       - run: go test -v -race -cover -covermode=atomic ./...
-        working-directory: src
